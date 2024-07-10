@@ -1,0 +1,115 @@
+﻿@{
+    Layout = "~/_SiteLayout.cshtml";
+    Page.Title = "EditProfile Page";
+    var newName = "";
+    var newBio = "";
+    var updateCommandName = "";
+    var updateCommandBio = "";
+    var db = Database.Open("SkillShareConnectionString");
+    var userID = Convert.ToString(Session["userID"]);
+    var selectCommand = "";
+    if (!string.IsNullOrEmpty(userID))
+    {
+        //update query so that IDS are not displayed
+        selectCommand = @"
+        SELECT  u.Fullname, u.Bio
+        FROM [USER] u
+        where u.UserID=@0 ";
+    }
+    else
+    {
+        //empty table if the user is not logged in
+        <p class="text-center">You are not logged in. Please <a href="login.cshtml">login</a> to edit your profile.</p>
+    }
+
+    var selectedData = db.Query(selectCommand, userID);
+
+    if (IsPost && Request.Form["Edit_profile"] != null)
+    {
+        newName = Request.Form["name"];
+        newBio = Request.Form["Bio"];
+        Session["name"] = newName;
+        if (newName != ((string)selectedData.FirstOrDefault()?.Fullname))
+        {
+            updateCommandName = @"UPDATE [USER] set Fullname=@0 where UserID=@1";
+            db.Execute(updateCommandName, newName, userID);
+        }
+        if (newBio != ((string)selectedData.FirstOrDefault()?.Bio))
+        {
+            updateCommandBio = @"UPDATE [USER] set Bio=@0 where UserID=@1";
+            db.Execute(updateCommandBio, newBio, userID);
+        }
+        Response.Redirect("~/profile.cshtml");
+    }
+}
+
+
+
+
+
+<body>
+    <!--Header start-->
+    <div class="container-fluid bg-primary py-5 mb-5 page-header">
+        <div class="container py-5">
+            <div class="row justify-content-center">
+                <div class="col-lg-10 text-center">
+                    <h1 class="display-3 text-white animated slideInDown">Edit Profile</h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb justify-content-center">
+                            <li class="breadcrumb-item"><a class="text-white" href="#">Home</a></li>
+                            <li class="breadcrumb-item"><a class="text-white" href="#">Pages</a></li>
+                            <li class="breadcrumb-item text-white active" aria-current="page">Edit Profile</li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-6">
+                <div class="team-item bg-light">
+                    <div class="overflow-hidden">
+                        <div style="padding-left: 10px;">
+                            <form id="editProfileForm" method="post" name="Edit_Profile">
+                                <input type="hidden" name="Edit_Profile" value="1">
+                                <div class="mb-3 text-center">
+                                    <!-- Center the "Edit Here" heading -->
+                                    <h2 class="mb-lg-4">Edit Here</h2>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="name">Name</label>
+                                    <input type="text" id="name" name="name" class="form-control" value="@((string)selectedData.FirstOrDefault()?.Fullname)">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="Bio">Bio</label>
+                                    <input type="text" id="Bio" name="Bio" class="form-control" value="@((string)selectedData.FirstOrDefault()?.Bio)">
+                                </div>
+                                @Html.ValidationSummary()
+                                <div class="col-12">
+                                    <button class="btn btn-primary w-100 py-3" type="button" onclick="confirmSubmit()">Submit Changes</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <script>
+        function confirmSubmit() {
+            if (confirm("Are you sure you want to submit changes?")) {
+                document.getElementById("editProfileForm").submit();
+            }
+        }
+    </script>
+
+    <!-- Edit Profiling Ends -->
+
+
+</body>

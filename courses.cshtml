@@ -1,0 +1,241 @@
+@{
+    Layout = "~/_SiteLayout.cshtml";
+    Page.Title = "Course Page";
+
+
+    var db = Database.Open("SkillShareConnectionString");
+
+    //CODE FOR COURSE SEARCH
+    var selectCommand = "Select * From Course";
+    var selectDataName = "";
+    var selectDataCategory = "";
+    var selectedData = db.Query(selectCommand);
+    //if both values entered then search on the basis of both
+    if (!Request.QueryString["course_name"].IsEmpty() && !Request.QueryString["course_category"].IsEmpty())
+    {
+        selectCommand = "Select * From Course Where Title LIKE @0 AND Category LIKE @1";
+        selectDataName = "%" + Request["course_name"] + "%";
+        selectDataCategory = "%" + Request["course_category"] + "%";
+        selectedData = db.Query(selectCommand, selectDataName, selectDataCategory);
+    }
+    else
+    {
+        //search only on the basis of either
+        if (!Request.QueryString["course_name"].IsEmpty())
+        {
+            selectCommand = "Select * From Course Where Title LIKE @0";
+            selectDataName = "%" + Request["course_name"] + "%";
+            selectedData = db.Query(selectCommand, selectDataName);
+        }
+        if (!Request.QueryString["course_category"].IsEmpty())
+        {
+            selectCommand = "Select * From Course Where Category LIKE @0";
+            selectDataCategory = "%" + Request["course_category"] + "%";
+            selectedData = db.Query(selectCommand, selectDataCategory);
+
+        }
+    }
+    var grid = new WebGrid(source: selectedData, rowsPerPage: 5);
+
+
+    //CODE FOR POPULAR COURSES - based on the number of enrollments
+    selectCommand = @"	select * from COURSE c
+inner join (
+Select top 3 CourseID, COUNT(*) AS studentsEnrolled
+from ENROLLMENT
+group by CourseID order by count(*) desc) as mid
+on c.CourseID=mid.CourseID";
+    selectDataName = "";
+    selectDataCategory = "";
+    var selectedDataPopularCourses = db.Query(selectCommand); //will get three rows as need to display three of the most popular courses
+    int i = 1; //for setting the idices of images in a loop
+
+    //CODE FOR STUDENT REVIEWS
+    var highRatedReviews = @"Select u.Bio, u.Fullname, r.Comment from REVIEW r
+inner join [USER] u on u.UserID=r.UserID
+inner join [COURSE] c on c.CourseID=r.CourseID
+where Rating=5";
+    var selectedData1 = db.Query(highRatedReviews);
+}
+
+
+<head>
+    <style>
+        .grid {
+            background-color: whitesmoke;
+            color: black;
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .head{
+            color:black;
+        }
+        .grid td, th {
+            border: 1px solid white;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .grid th {
+            background-color: paleturquoise;
+            color: black;
+        }
+        
+        .grid tr:nth-child(even) {
+            background-color: paleturquoise;
+        }
+        
+        .grid tr:hover {
+            background-color: mediumturquoise;
+        }
+            
+        .search-form-container{
+        text-align: center;
+        }
+
+        .search-form {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .search-inputs {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            margin-right: 10px;
+        }
+        .search-inputs input {
+            width: 200px;
+            padding: 10px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .search-form button {
+            padding: 10px 20px;
+            background-color: mediumturquoise;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+            .search-form button:hover {
+                background-color: darkturquoise;
+            }
+    </style>
+</head>
+
+<body>
+    <!-- Header Start -->
+    <div class="container-fluid bg-primary py-5 mb-5 page-header">
+        <div class="container py-5">
+            <div class="row justify-content-center">
+                <div class="col-lg-10 text-center">
+                    <h1 class="display-3 text-white animated slideInDown">Courses</h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb justify-content-center">
+                            <li class="breadcrumb-item"><a class="text-white" href="#">Home</a></li>
+                            <li class="breadcrumb-item"><a class="text-white" href="#">Pages</a></li>
+                            <li class="breadcrumb-item text-white active" aria-current="page">Courses</li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Header End -->
+
+    <!-- Search Courses start -->
+    <div class="container-xxl py-5 category">
+        <div class="container">
+            <div class="text-center wow fadeInUp" data-wow-delay="0.1s">
+                <h6 class="section-title bg-white text-center text-primary px-3">Courses</h6>
+                <h1 class="mb-5">Course List</h1>
+            </div>
+            <div class="search-form-container">
+                <form method="get" class="search-form">
+                    <div class="search-inputs">
+                        <input type="text" name="course_name" placeholder="Search by Title" value="@Request["course_name"]">
+                        <input type="text" name="course_category" placeholder="Search by Category" value="@Request["course_category"]">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Search</button>
+                </form>
+            </div>
+            <br>
+            <div class="grid-container" style="">
+                @grid.GetHtml(
+                tableStyle: "grid",
+                headerStyle: "head",
+                alternatingRowStyle: "alt",
+                columns: grid.Columns(
+                grid.Column("Title"),
+                grid.Column("Description"),
+                grid.Column("Category"),
+                grid.Column("Price"),
+                grid.Column("TotalNumberOfLectures"))
+                )
+            </div>
+        </div>
+    </div>
+    <!-- Search Courses end -->
+
+    <!-- Popular Courses Start -->
+    <div class="container-xxl py-5">
+        <div class="container">
+            <div class="text-center wow fadeInUp" data-wow-delay="0.1s">
+                <h6 class="section-title bg-white text-center text-primary px-3">Courses</h6>
+                <h1 class="mb-5">Popular Courses</h1>
+            </div>
+
+            <div class="row g-4 justify-content-center">
+                @foreach (var item in selectedDataPopularCourses)
+                {
+                    <div class="col-lg-4 col-md-6 wow fadeInUp" data-wow-delay="0.1s">
+                        <div class="course-item bg-light" style="height: 350px;">
+                            <div class="position-relative overflow-hidden">
+                                <img class="img-fluid" src="img/course-@(Convert.ToString(i++)).jpg" alt="">
+                                <div class="w-100 d-flex justify-content-center position-absolute bottom-0 start-0 mb-4">
+                                    <a href="~/courses.cshtml" class="flex-shrink-1 btn btn-sm btn-primary px-3" style="border-radius: 20px;">Read More</a>
+                                </div>
+                            </div>
+                            <div class="text-center p-4 pb-0">
+                                <div class="mb-3">
+                                    <p>Students Enrolled: @item.StudentsEnrolled</p>
+                                </div>
+                                <h5 class="mb-4" value="">@item.Title</h5>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    <!-- Popular Courses End -->
+
+    <!-- Course Reviews Start -->
+    <div class="container-xxl py-5 wow fadeInUp" data-wow-delay="0.1s">
+        <div class="container">
+            <div class="text-center">
+                <h6 class="section-title bg-white text-center text-primary px-3">Discussion</h6>
+                <h1 class="mb-5">Our Students Say!</h1>
+            </div>
+            <div class="owl-carousel testimonial-carousel position-relative">
+                @foreach (var row in selectedData1)
+                {
+                    <div class="testimonial-item text-center">
+                        <h5 class="mb-0">@row.Fullname</h5>
+                        <p>@row.Bio</p>
+                        <div class="testimonial-text bg-light text-center p-4">
+                            <p class="mb-0">@row.comment!</p>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    <!-- Course Reviews End -->
+
+</body>

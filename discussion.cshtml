@@ -1,0 +1,112 @@
+@{ Layout = "~/_SiteLayout.cshtml";
+    Page.Title = "Discussion Page";
+
+    var db = Database.Open("SkillShareConnectionString");
+    var userIDs = Convert.ToString(Session["userID"]);
+
+    var showMessage = false; // Flag to control displaying the success message
+
+    if (IsPost)
+    {
+        var email = Request["email"];
+        var selectedCourseId = Request["courseSelect"]; // Get selected course ID
+        var topic = Request["topic"];
+        var question = Request["question"];
+        var createdAt = DateTime.Now;
+
+        // Fetch CourseID based on the selected course ID
+        var selectCourseId = "SELECT CourseID FROM COURSE WHERE CourseID = @0";
+        var courseId = db.QueryValue(selectCourseId, selectedCourseId);
+
+        if (courseId == null)
+        {
+            // Handle case where selected course ID does not exist
+        <div class="alert alert-danger mt-3" role="alert">
+            Selected course ID does not exist.
+        </div> }
+        else
+        {
+            // Insert new record into the DISCUSSIONFORUM table
+            var insertCommand = "INSERT INTO DISCUSSIONFORUM(UserID, CourseID, Topic, Message, DatePosted) VALUES (@0, @1, @2, @3, @4)";
+            db.Execute(insertCommand, userIDs, courseId, topic, question, createdAt);
+            showMessage = true;
+        }
+    }
+    // Fetch enrolled courses of the user
+    var selectCourses = "SELECT COURSE.CourseID, COURSE.Title FROM ENROLLMENT INNER JOIN COURSE ON ENROLLMENT.CourseID = COURSE.CourseID WHERE ENROLLMENT.UserID = @0";
+    var enrolledCourses = db.Query(selectCourses, userIDs);
+    var discussionForumQuery = @"SELECT u.Fullname as [Full Name], c.Title as [Course Title], d.Topic as [Discussion Topic], d.Message as [Question], d.DatePosted as [Post Date] FROM DISCUSSIONFORUM d
+	inner join [USER] u on u.UserID=d.UserID
+	inner join [COURSE] c on c.CourseID=d.CourseID";
+    var selectedData = db.Query(discussionForumQuery);
+    var grid = new WebGrid(source: selectedData, defaultSort: "Post Date", rowsPerPage: 5);
+    }
+
+
+<body>
+    @if (showMessage)
+    {
+        <div class="alert alert-success mt-3" role="alert">
+            Your question was submitted successfully.
+        </div>
+    }
+    <div class="container-fluid bg-primary py-5 mb-5 page-header">
+        <div class="container py-5">
+            <div class="row justify-content-center">
+                <div class="col-lg-10 text-center">
+                    <h1 class="display-3 text-white animated slideInDown">Discussion Forum</h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb justify-content-center">
+                            <li class="breadcrumb-item"><a class="text-white" href="http://127.0.0.1:5500/index.html">Home</a></li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-xxl py-5">
+        <div class="container text-center">
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <h2 class="mb-4">Discussion Forum</h2>
+                    <form id="discussionForm" method="post">
+                        <div class="mb-3">
+                            <label for="courseSelect" class="form-label">Select Course:</label>
+                            <select class="form-select" id="courseSelect" name="courseSelect">
+                                @foreach (var course in enrolledCourses)
+                                {
+                                    <option value="@course.CourseID">@course.Title</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <input type="email" class="form-control" id="email" name="email" placeholder="Your Email" required>
+                        </div>
+                        <div class="mb-3">
+                            <input type="text" class="form-control" id="topic" name="topic" placeholder="Sub-topic of Discussion" required>
+                        </div>
+                        <div class="mb-3">
+                            <textarea class="form-control" id="question" name="question" placeholder="Your Question" required></textarea>
+                        </div>
+                        <input type="hidden" id="selectedCourseId" name="selectedCourseId">
+                        <button type="submit" class="btn btn-primary" id="submitBtn">Submit</button>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-xxl py-5">
+        <div class="container">
+            <h2>Discussion Questions Grid View</h2>
+            @grid.GetHtml(
+                           tableStyle: "table table-bordered table-striped",
+                           headerStyle: "thead-dark"
+                           )
+        </div>
+    </div>
+    <a href="#" class="btn btn-lg btn-primary btn-lg-square back-to-top"><i class="bi bi-arrow-up"></i></a>
+    <script src="js/main.js"></script>
+</body>

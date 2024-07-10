@@ -1,0 +1,171 @@
+﻿@{
+    Layout = "~/_SiteLayout.cshtml";
+    Page.Title = "Home Page";
+
+    //note that the user will remain logged in even after reopening browser as session preserved for a fixed amount of time
+    var greetingMessage = Session["name"];
+}
+
+<body>
+    <!-- Carousel Start -->
+    <div class="container-fluid p-0 mb-5">
+        <div class="owl-carousel header-carousel position-relative">
+            <div class="owl-carousel-item position-relative">
+                <img class="img-fluid" src="img/Fast.jpeg" alt="">
+                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center" style="background: rgba(24, 29, 56, .7);">
+                    <div class="container">
+                        <div class="row justify-content-start">
+                            <div class="col-sm-10 col-lg-8">
+                                <h5 class="text-primary text-uppercase mb-3 animated slideInDown">Best Online Courses</h5>
+                                <h1 class="display-3 text-white animated slideInDown">The Best Online Learning Platform</h1>
+                                <p class="fs-5 text-white mb-4 pb-2">Enhance your Skills with us.</p>
+                                <a href="~/login.cshtml" class="btn btn-primary py-md-3 px-md-5 me-3 animated slideInRight">Join Now</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="owl-carousel-item position-relative">
+                <img class="img-fluid" src="img/pf.jpg" alt="">
+                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center" style="background: rgba(24, 29, 56, .7);">
+                    <div class="container">
+                        <div class="row justify-content-start">
+                            <div class="col-sm-10 col-lg-8">
+                                <h5 class="text-primary text-uppercase mb-3 animated slideInDown">Best Online Courses</h5>
+                                <h1 class="display-3 text-white animated slideInDown">Get Educated Online From Your Home</h1>
+                                <p class="fs-5 text-white mb-4 pb-2">Build your professional career with us.</p>
+                                <a href="~/login.cshtml" class="btn btn-primary py-md-3 px-md-5 me-3 animated slideInLeft">Join Now</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Carousel End -->
+    <!--Hello message start-->
+    <div>
+        @if (!string.IsNullOrEmpty(Convert.ToString(greetingMessage)))
+        {
+            <div class="container">
+                <h2 class="d-flex justify-content-center">Hello, @Convert.ToString(Session["name"])</h2>
+            </div>
+        }
+    </div>
+    <!--Hello message end-->
+    <!-- Service Start -->
+    <div class="container-xxl py-5">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-lg-3 col-sm-6 wow fadeInUp" data-wow-delay="0.1s">
+                    <a href="~/instructors.cshtml">
+                        <div class="service-item text-center pt-3">
+                            <div class="p-4">
+                                <h5 class="mb-3">Skilled Instructors</h5>
+                                <p>Meet our passionate instructors, committed to guiding you with expertise through your learning journey.</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-lg-3 col-sm-6 wow fadeInUp" data-wow-delay="0.3s">
+                    <a href="~/courses.cshtml">
+                        <div class="service-item text-center pt-3">
+                            <div class="p-4">
+                                <h5 class="mb-3">Courses</h5>
+                                <p>Explore our diverse range of courses, from programming to design, tailored to your learning needs and interests.</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-lg-3 col-sm-6 wow fadeInUp" data-wow-delay="0.5s">
+                    <a href="~/profile.cshtml">
+                        <div class="service-item text-center pt-3">
+                            <div class="p-4">
+                                <h5 class="mb-3">Profile</h5>
+                                <p>Unlock your potential with our supportive learning community dedicated to growth and discovery.</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-lg-3 col-sm-6 wow fadeInUp" data-wow-delay="0.7s">
+                    <a href="~/contact.cshtml">
+                        <div class="service-item text-center pt-3">
+                            <div class="p-4">
+                                <h5 class="mb-3">Contact</h5>
+                                <p>Have questions? Reach out to us at our email or call for prompt assistance.</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Service End -->
+    <!-- profile Start -->
+    <div class="container-xxl py-5">
+        <div class="container">
+            <div class="row g-5">
+                <div class="col-lg-6 wow fadeInUp" data-wow-delay="0.1s" style="min-height: 400px;">
+                    <div class="position-relative h-100">
+                        <img class="img-fluid position-absolute w-100 h-100" src="img/about.jpg" alt="" style="object-fit: cover;">
+                    </div>
+                </div>
+                <div class="col-lg-6 wow fadeInUp" data-wow-delay="0.3s">
+                    <h6 class="section-title bg-white text-start text-primary pe-3">profile Us</h6>
+                    <h1 class="mb-4">Welcome to SkillShare</h1>
+                    <p class="mb-4"> Welcome to Skillshare - your gateway to unlimited learning! Dive into a world of creativity and knowledge with our diverse range of courses taught by industry experts. </p>
+                    <p class="mb-4">Whether you're looking to master a new skill or explore your passions, Skillshare has something for everyone. Join our vibrant community of learners and unleash your full potential today!</p>
+
+                    <a class="btn btn-primary py-3 px-5 mt-2" href="~/login.cshtml">Join Now</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- profile End -->
+    <!-- instructors Start -->
+    <!-- instructors End -->
+    <!-- discussion Start -->
+    <div class="container-xxl py-5 wow fadeInUp" data-wow-delay="0.1s">
+        <div class="container">
+            <div class="text-center">
+                <h6 class="section-title bg-white text-center text-primary px-3">Discussion</h6>
+                <h1 class="mb-5">Our Students Say!</h1>
+            </div>
+            <div class="owl-carousel testimonial-carousel position-relative">
+                <div class="testimonial-item text-center">
+                    <img class="border rounded-circle p-2 mx-auto mb-3" src="img/testimonial-1.jpg" style="width: 80px; height: 80px;">
+                    <h5 class="mb-0">Rosa</h5>
+                    <p>Graphic Designer</p>
+                    <div class="testimonial-text bg-light text-center p-4">
+                        <p class="mb-0">Skillshare's online eLearning platform has truly revolutionized my learning experience. The interactive courses make it easy to grasp complex concepts, and the community aspect adds an extra layer of engagement. </p>
+                    </div>
+                </div>
+                <div class="testimonial-item text-center">
+                    <img class="border rounded-circle p-2 mx-auto mb-3" src="img/testimonial-2.jpg" style="width: 80px; height: 80px;">
+                    <h5 class="mb-0">Jacob</h5>
+                    <p>Teacher</p>
+                    <div class="testimonial-text bg-light text-center p-4">
+                        <p class="mb-0">What sets Skillshare apart is its vibrant community of learners and instructors. The feedback and encouragement I've received have been invaluable in my learning journey. Whether through peer reviews or discussions, I always feel supported and motivated to keep pushing myself. Skillshare isn't just a platform for acquiring skills; it's a community where creativity thrives.</p>
+                    </div>
+                </div>
+                <div class="testimonial-item text-center">
+                    <img class="border rounded-circle p-2 mx-auto mb-3" src="img/testimonial-3.jpg" style="width: 80px; height: 80px;">
+                    <h5 class="mb-0">Mark</h5>
+                    <p>Free-Lancer</p>
+                    <div class="testimonial-text bg-light text-center p-4">
+                        <p class="mb-0">Skillshare has been instrumental in helping me level up my skills. The courses are structured in a way that caters to learners of all levels, so whether you're a complete beginner or looking to refine your expertise, there's something for everyone. The hands-on projects provide real-world application, making it easy to put theory into practice.</p>
+                    </div>
+                </div>
+                <div class="testimonial-item text-center">
+                    <img class="border rounded-circle p-2 mx-auto mb-3" src="img/testimonial-4.jpg" style="width: 80px; height: 80px;">
+                    <h5 class="mb-0">Sarah</h5>
+                    <p>Business Analyst</p>
+                    <div class="testimonial-text bg-light text-center p-4">
+                        <p class="mb-0">As a busy professional, finding time to pursue my passions can be challenging. Skillshare has been a game-changer for me. The bite-sized lessons fit perfectly into my schedule, allowing me to learn at my own pace. The instructors are knowledgeable and engaging, and I love the flexibility to explore a wide range of topics all in one place.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- discussion End -->
+</body>

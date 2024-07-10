@@ -1,0 +1,181 @@
+﻿@{
+    Layout = "~/_SiteLayout.cshtml";
+    Page.Title = "Lecture Page";
+
+    var db = Database.Open("SkillShareConnectionString");
+    var userID = Convert.ToString(Session["userID"]);
+    var selectCommand = "";
+    var courseID = "";
+    if (Convert.ToInt32(Session["count"]) < 1)
+    {
+        courseID = Request.QueryString["courseID"];
+        Session["courseIDX"] = courseID;
+        Session["count"] = Convert.ToInt32(Session["count"]) + 1;
+    }
+    else
+    {
+        courseID = Convert.ToString(Session["courseIDX"]);
+    }
+    //for displaying the youtube videos
+    if (!string.IsNullOrEmpty(userID))
+    {
+        selectCommand = @"
+        SELECT c.CourseID, c.Title AS CourseTitle, l.LectureID, l.Title AS LectureTitle, l.Description, l.VideoURL, l.LectureOrder
+        FROM [USER] u
+        INNER JOIN ENROLLMENT e ON u.UserID = e.UserID
+        INNER JOIN COURSE c ON e.CourseID = c.CourseID
+        INNER JOIN LECTURE l ON c.CourseID = l.CourseID
+        WHERE u.UserID=@0 and c.CourseID=@1";
+    }
+    else
+    {
+        selectCommand = "Select * from [User] where 1=0 AND userID=@0";
+    }
+    var lecturesData = db.Query(selectCommand, userID, courseID);
+
+    //// Pagination (make video pages within the current page)
+    var pageIndex = Request.QueryString["page"] != null ? Convert.ToInt32(Request.QueryString["page"]) : 1;
+    var pageSize = 1; // Adjust as needed
+    var totalItems = lecturesData.Count();
+    var totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+    var offset = (pageIndex - 1) * pageSize;
+    var pagedData = lecturesData.Skip(offset).Take(pageSize);
+
+
+    //incrementing the lectures taken upon pressing completed lecture button
+    var selectQuery = "";
+    bool lecturesCompleted = false;
+    if (IsPost)
+    {
+        if (!string.IsNullOrEmpty(userID))
+        {
+            selectQuery = @"select * from COURSE c
+	        inner join ENROLLMENT e 
+	        on c.CourseID=e.CourseID
+	        where c.CourseID=@0 AND UserID=@1";
+            var selectedData = db.QuerySingle(selectQuery, courseID, userID);
+            if (selectedData.NumberOfLecturesCompleted < selectedData.TotalNumberOfLectures)
+            {
+                //increment the lectures completed
+                var updateLecturesQuery = @"update ENROLLMENT
+	            set NumberOfLecturesCompleted=NumberOfLecturesCompleted+1
+	            where CourseID=@0 AND UserID=@1";
+                db.Execute(updateLecturesQuery, courseID, userID);
+            }
+            else
+            {
+                //print that Lectures already completed
+                lecturesCompleted = true;
+            }
+        }
+    }
+}
+
+
+<head>
+    <style>
+        .lecture-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 80vh;
+        }
+        .lecture {
+            max-width: 1000px; 
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: #E9967A;
+            text-align: center;
+        }
+        .lecture video {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .lecture .url {
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+
+
+<body>
+    <!--Header start-->
+    <div class="container-fluid bg-primary py-5 mb-5 page-header">
+        <div class="container py-5">
+            <div class="row justify-content-center">
+                <div class="col-lg-10 text-center">
+                    <h1 class="display-3 text-white animated slideInDown">Lectures</h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb justify-content-center">
+                            <li class="breadcrumb-item text-white active" aria-current="page">Lectures</li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!--Header End-->
+    <!-- Lecture content section -->
+    <div class="container-xxl py-5">
+        <div class="container">
+            <div class="text-center wow fadeInUp" data-wow-delay="0.1s">
+                <h6 class="section-title bg-white text-center text-primary px-3">Online Lectures</h6>
+                <h1 class="mb-5">Lectures</h1>
+            </div>
+            <!-- Display lecture content -->
+            @foreach (var lecture in pagedData)
+            {
+                <div class="lecture-container">
+                    <div class="lecture">
+                        <h3>@lecture.LectureTitle</h3>
+                        <p>@lecture.Description</p>
+                        <div class="video-container">
+                            <iframe width="800" height="450" src="https://www.youtube.com/embed/@GetYouTubeVideoId(lecture.VideoURL)" frameborder="0" allowfullscreen></iframe>
+                        </div>
+                    </div>
+                </div>
+            }
+            <!-- Pagination -->
+            @if (totalPages > 1)
+            {
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center">
+                        @for (var i = 1; i <= totalPages; i++)
+                        {
+                            <li class="page-item @(i == pageIndex ? "active" : "")">
+                                <a class="page-link" href="?page=@i">@i</a>
+                            </li>
+                        }
+                    </ul>
+                </nav>
+            }
+        </div>
+    </div>
+
+    <div class="container text-center">
+        <form method="post">
+            <button type="submit" class="btn btn-primary">Completed one more lecture!</button>
+        </form>
+    </div>
+
+    @if (!string.IsNullOrEmpty(userID) && lecturesCompleted==true)
+    {
+        <div class="alert alert-warning container" role="alert">
+            Lectures are already completed for this course.
+        </div>
+    }
+
+    @functions {
+        public string GetYouTubeVideoId(string youtubeUrl)
+        {
+            var uri = new Uri(youtubeUrl);
+            var query = uri.Query;
+            var queryDictionary = System.Web.HttpUtility.ParseQueryString(query);
+            var videoId = queryDictionary["v"];
+            return videoId;
+        }
+    }
+</body>
+

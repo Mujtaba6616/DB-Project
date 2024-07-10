@@ -1,0 +1,406 @@
+@{
+    Layout = "~/_SiteLayout.cshtml";
+    Page.Title = "Profile Page";
+
+    //COURSES TAKEN AND COURSE PROGRESS
+    var db = Database.Open("SkillShareConnectionString");
+    var userID = Convert.ToString(Session["userID"]);
+    var userName = Convert.ToString(Session["userID"]);
+    var selectCommand = "";
+    var selectCommand2 = "";
+    var selectCommand3 = "";
+    Session["count"] = 0;
+    if (!string.IsNullOrEmpty(userID))
+    {
+        //update query so that IDS are not displayed
+        selectCommand = @"
+            SELECT u.UserID, u.Fullname, u.Username, u.Email, c.CourseID, c.Title AS CourseTitle, c.Category AS CourseCategory
+            FROM [USER] u
+            INNER JOIN ENROLLMENT e ON u.UserID = e.UserID
+            INNER JOIN COURSE c ON e.CourseID = c.CourseID
+            WHERE u.UserID=@0";
+
+        selectCommand2 = @"
+            SELECT u.UserID, u.Fullname, u.Username, u.Email, c.CourseID, c.Title AS CourseTitle, c.Category AS CourseCategory,
+            e.NumberOfLecturesCompleted, c.TotalNumberOfLectures
+            FROM [USER] u
+            INNER JOIN ENROLLMENT e ON u.UserID = e.UserID
+            INNER JOIN COURSE c ON e.CourseID = c.CourseID
+            WHERE u.UserID=@0";
+            selectCommand3 = "select * from [USER] where userID=@0";
+    }
+    else
+    {
+        //empty table if the user is not logged in
+        selectCommand = "Select * from [User] where 1=0 AND userID=@0";
+        selectCommand2 = "Select * from [User] where 1=0 AND userID=@0";
+        selectCommand3 = "Select * from [User] where 1=0 AND userID=@0";
+
+    }
+    var selectedData = db.Query(selectCommand, userID);
+    var selectedData2 = db.Query(selectCommand2, userID);
+    var selectedData3 = db.Query(selectCommand3, userID);
+
+    //COURSE REVIEWS AND INSERTION
+    Validation.RequireField("rCourse", "You must select a course.");
+    Validation.RequireField("rRate", "Rating is required.");
+    Validation.RequireField("rComment", "Comment is required.");
+
+    var displayExisitngReviewsQuery = "";
+    var queryCommand1 = "";
+    var coursesAvailableQuery = "";
+    if (!string.IsNullOrEmpty(userID))
+    {
+        queryCommand1 = @"SELECT u.UserID, u.Fullname, u.Username, u.Email, c.CourseID, c.Title AS CourseTitle, c.Category AS CourseCategory
+        FROM [USER] u
+        INNER JOIN ENROLLMENT e ON u.UserID = e.UserID
+        INNER JOIN COURSE c ON e.CourseID = c.CourseID
+        WHERE u.UserID=@0";
+        //this retrieves the list of courses taken by a user
+
+        //display
+        displayExisitngReviewsQuery = @"select Title, Rating, Comment, cast(ReviewDate as date) as reviewDate
+        from review r
+        inner join COURSE c
+        on c.CourseID=r.CourseID
+        where userid=@0";
+
+        //courses that the user is not taking
+        coursesAvailableQuery = @"select * from COURSE
+        where CourseID NOT IN
+        (
+        select c.CourseID from ENROLLMENT e
+        inner join COURSE c
+        on e.CourseID= c.CourseID
+        where UserID = @0
+        )";
+    }
+    else
+    {
+        //these are just dummy statements and nothing will be printed
+        queryCommand1 = "Select * from [User] where 1=0 AND userID=@0";
+        displayExisitngReviewsQuery = "Select * from REVIEW where 1=0 AND userID=@0";
+        coursesAvailableQuery = "Select* from [User] where 1 = 0 AND userID =@0";
+    }
+    var dataCourses_reviews = db.Query(queryCommand1, userID);
+    var existing_reviews = db.Query(displayExisitngReviewsQuery, userID);
+    var courseAvailable = db.Query(coursesAvailableQuery, userID);
+    var existing_reviews_grid = new WebGrid(source: existing_reviews, rowsPerPage: 5);
+
+    //if add review button pressed and the userID is not empty string and validation is fine
+    if (IsPost && !Request.Form["submitReview"].IsEmpty() && !string.IsNullOrEmpty(userID) && Validation.IsValid("rCourse", "rRate", "rComment"))
+    {
+        var courseID = Request.Form["rCourse"];
+        var rating = Request.Form["rRate"];
+        var comment = Request.Form["rComment"];
+        var insertCommand = "INSERT INTO Review Values(@0, @1, @2, @3, GETDATE())";
+        db.Execute(insertCommand, userID, courseID, rating, comment);
+        Response.Redirect("~/profile.cshtml");
+    }
+
+    //COURSE INSERTION
+    Validation.RequireField("eCourse", "You must select atleast one course.");
+    if (IsPost && !Request.Form["courseEnrollmentSubmit"].IsEmpty() && !string.IsNullOrEmpty(userID) && Validation.IsValid("eCourse"))
+    {
+        var courseID = Request.Form["eCourse"];
+        var value = 0;
+        var insertCommand = "	insert into ENROLLMENT (UserID, CourseID, NumberOfLecturesCompleted) values (@0, @1, @2)";
+        db.Execute(insertCommand, userID, courseID, Convert.ToString(value));
+        Response.Redirect("~/profile.cshtml");
+    }
+
+
+    var selectCommandx = "";
+    if (!string.IsNullOrEmpty(userID))
+    {
+        selectCommandx = @"
+        SELECT c.CourseID, c.Title AS CourseTitle, l.LectureID, l.Title AS LectureTitle, l.Description, l.VideoURL, l.LectureOrder
+        FROM [USER] u
+        INNER JOIN ENROLLMENT e ON u.UserID = e.UserID
+        INNER JOIN COURSE c ON e.CourseID = c.CourseID
+        INNER JOIN LECTURE l ON c.CourseID = l.CourseID
+        WHERE u.UserID=@0";
+    }
+    else
+    {
+        selectCommandx = "Select * from [User] where 1=0 AND userID=@0";
+    }
+    var lecturesData = db.Query(selectCommandx, userID);
+}
+
+
+
+<head>
+    <style>
+        .grid {
+            background-color: whitesmoke;
+            color: black;
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .grid td, th {
+            border: 1px solid white;
+            padding: 8px;
+            text-align: left;
+        }
+        .grid th {
+            background-color: paleturquoise;
+            color: darkturquoise;
+        }
+        .grid tr:nth-child(even) {
+            background-color: paleturquoise;
+        }
+        .grid tr:hover {
+            background-color: mediumturquoise;
+        }
+        .search-form-container {
+            text-align: center;
+        }
+        .search-form {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .search-inputs {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            margin-right: 10px;
+        }
+        .search-inputs input {
+            width: 200px;
+            padding: 10px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .search-form button {
+            padding: 10px 20px;
+            background-color: mediumturquoise;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .search-form button:hover {
+            background-color: darkturquoise;
+        }
+    </style>
+</head>
+
+
+<body>
+    <!--Header start-->
+    <div class="container-fluid bg-primary py-5 mb-5 page-header">
+        <div class="container py-5">
+            <div class="row justify-content-center">
+                <div class="col-lg-10 text-center">
+                    <h1 class="display-3 text-white animated slideInDown">Profile</h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb justify-content-center">
+                            <li class="breadcrumb-item"><a class="text-white" href="#">Home</a></li>
+                            <li class="breadcrumb-item"><a class="text-white" href="#">Pages</a></li>
+                            <li class="breadcrumb-item text-white active" aria-current="page">profile</li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!--Header End-->
+
+    <!--Hello start-->
+    @if (!string.IsNullOrEmpty(Convert.ToString(Session["name"])))
+    {
+        <div class="container">
+            <h2 class="d-flex justify-content-center">Hello, @Convert.ToString(Session["name"])</h2>
+        </div>
+    }
+    <!--Hello end-->
+
+    <!--Course display start-->
+    <div class="container-xxl py-5 category">
+        <div class="container">
+            <div class="text-center wow fadeInUp" data-wow-delay="0.1s">
+                <h6 class="section-title bg-white text-center text-primary px-3">Courses</h6>
+                <h1 class="mb-5">Courses Taken</h1>
+
+                <div class="table-responsive">
+                    <table class="grid">
+                        <thead>
+                            <tr>
+                                <th scope="col">Course ID</th>
+                                <th scope="col">Course Title</th>
+                                <th scope="col">Course Category</th>
+                                <th scope="col">Progress (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in selectedData2)
+                            {
+                                <tr>
+                                    <td>@item.CourseID</td>
+                                    <td><a href="~/Lecture.cshtml?courseID=@item.CourseID" class="course-link">@item.CourseTitle</a></td>
+                                    <td>@item.CourseCategory</td>
+                                    <td>
+                                        @{
+                                            if (item.TotalNumberOfLectures != 0)
+                                            {
+                                                var progressPercentage = (double)item.NumberOfLecturesCompleted / (double)item.TotalNumberOfLectures * 100;
+                                                <div class="progress">
+                                                    <div class="progress-bar" role="progressbar" style="width: @(progressPercentage)%" aria-valuenow="@(progressPercentage)" aria-valuemin="0" aria-valuemax="100">@progressPercentage.ToString("0.##")%</div>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="progress">
+                                                    <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">N/A</div>
+                                                </div>
+                                            }
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!--Course display end-->
+
+
+    <!--Course enrollment start-->
+    <div class="container-xxl py-5">
+        <div class="container">
+            <div class="text-center wow fadeInUp" data-wow-delay="0.1s">
+                <h6 class="section-title bg-white text-center text-primary px-3">Courses</h6>
+                <h1 class="mb-5" style="font-size: 2.5rem;">Course Enrollment</h1>
+            </div>
+            <div class="container text-center">
+                <h5 class="mb-3">Please visit the <a href="~/courses.cshtml">courses page</a> for more information.</h5>
+            </div>
+            <div class="row justify-content-center">
+                <div class="col-md-6">
+                    <form method="post" name="CourseEnrollment" id="CourseEnrollment" class="search-form-container">
+                        <div class="form-group">
+                            <label for="eCourse">Courses Available:</label>
+                            <select name="eCourse" id="eCourse" class="form-control">
+                                @foreach (var item in courseAvailable)
+                                {
+                                    <option value="@item.courseID">@item.Title</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-group text-center" style="margin-top: 15px;">
+                            <input type="submit" name="courseEnrollmentSubmit" class="btn btn-primary" value="Enroll">
+                        </div>
+                    </form>
+                    @Html.ValidationMessage("courseEnrollment")
+                </div>
+            </div>
+        </div>
+    </div>
+    <!--Course enrollment end-->
+
+    <!--course review Start-->
+    <div class="container-xxl py-5">
+        <div class="container">
+            <div class="text-center wow fadeInUp" data-wow-delay="0.1s">
+                <h6 class="section-title bg-white text-center text-primary px-3">Courses</h6>
+                <h1 class="mb-5">Course review</h1>
+            </div>
+            <div class="container">
+                <h3>Your reviews:</h3>
+                <div>
+                    @existing_reviews_grid.GetHtml(
+                        tableStyle: "grid",
+                        headerStyle: "head",
+                        alternatingRowStyle: "alt"
+                    )
+                </div>
+            </div>
+
+            <div class="container" style="margin-top:20px;">
+                <div class="form-group text-center">
+                    <h3>Review another course: </h3>
+                    <form method="post">
+                        <div class="d-flex justify-content-center">
+                            <div style="width: 50%;">
+                                <label for="rCourse">Select your course:</label>
+                                <select id="rCourse" name="rCourse" class="form-control">
+                                    @foreach (var item in dataCourses_reviews)
+                                    {
+                                        <option value="@item.CourseID">@item.CourseTitle</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-center">
+                            <div style="width: 50%;">
+                                <label for="rRate">Rating:</label>
+                                <select id="rRate" name="rRate" class="form-control">
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                    <option value="5">5</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-center">
+                            <div style="width: 50%;">
+                                <label for="rComment">Comment about the course:</label>
+                                <input type="text" name="rComment" id="rComment" class="form-control" />
+                            </div>
+                        </div>
+                        @Html.ValidationMessage("rComment", "rRate", "rCourse")
+                        <div class="d-flex justify-content-center" style="margin-top: 10px;">
+                            <input type="submit" name="submitReview" id="submitReview" class="btn btn-primary" value="Submit review" style="background-color: rgb(6,187,204); border-color: transparent;" />
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!--Profile  display start-->
+    <div class="container-xxl py-5 category">
+        <div class="container">
+            <div class="text-center wow fadeInUp" data-wow-delay="0.1s">
+                <h6 class="section-title bg-white text-center text-primary px-3">Profile</h6>
+                <h1 class="mb-5">Edit Profile</h1>
+                <div style="overflow-x:auto">
+                    <!-- Add horizontal scrolling -->
+                    <table class="grid">
+                        <tr class="head">
+                            <th>Fullname</th>
+                            <th>Bio</th>
+                        </tr>
+                        @foreach (var item in selectedData3)
+                        {
+                            <tr>
+                                <td>@item.Fullname</td>
+                                <td>@item.Bio</td>
+                            </tr>
+                        }
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--Edit Profile Button Start -->
+    <div class="container text-center">
+        <div class="">
+            <a href="~/EditProfile.cshtml" class="btn btn-primary">
+                Edit Profile
+            </a>
+        </div>
+    </div>
+    <!--Edit Profile Button End -->
+    <!--Profile  display end-->
+</body>
